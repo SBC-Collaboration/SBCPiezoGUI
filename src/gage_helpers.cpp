@@ -465,8 +465,7 @@ namespace SBCPiezoGUI {
         {
             /*
                 The number of ticks that have ocurred / tick count(the number of ticks / second)
-                = the number of seconds elapsed. Multiple by 1000000 to get the number of
-                mircoseconds
+                = the number of seconds elapsed. 
             */
             chans.CurrentTimeStamp = (double)( (*pTimeStamp)) / (double)(i64TickFrequency);
         }
