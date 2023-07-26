@@ -9,27 +9,27 @@ The files in include/SBCBinaryFormat were written by Hector Hawley Herrera and c
 There are four tabs on the control panel:
 
 #### Acquisition Options
-![acqoptions](https://github.com/SBC-Collaboration/SBCPiezoGUI/assets/22796402/a358e155-17d2-4f86-a1b9-cf15919936d6)
+![acqoptions](https://github.com/SBC-Collaboration/SBCPiezoGUI/assets/22796402/30dec03d-efa0-4ed5-a140-ea73276e54b3)
 
 These control parameters that remain constant while the digitizer is acquiring data, including the number of samples per event to collect (both before and after a trigger) and the total number of events. Data saving is also included; you can save in .txt or .sbc.bin format, with an additional option to save whatever signals are currently being displayed on the UI (in case you didn't select Save File before acquiring and now want to save your data). 
 
 #### Channel Options
-![chanoptions](https://github.com/cmitch819/SBCPiezoGUI/assets/22796402/f7853fa9-265f-4e6e-bf13-e69c8b8b3cd4)
+![chanoptions](https://github.com/SBC-Collaboration/SBCPiezoGUI/assets/22796402/c5557b86-6b74-4691-a274-8e9ea6f8119e)
 
 These control channel-specific parameters, including input range in mV and DC offset as a percentage of the input range. See SBC-Piezo-Base-Code repository or the Gage INI file documentation for more info.
 
 #### Trigger Options
-![trigoptions](https://github.com/cmitch819/SBCPiezoGUI/assets/22796402/41a00d63-93c1-4e24-99de-9f8620d8a4b7)
+![trigoptions](https://github.com/SBC-Collaboration/SBCPiezoGUI/assets/22796402/a88180af-e53a-455e-817e-d554177018de)
 
 These control trigger parameters, including number of triggers and parameters for each.
 
 #### Display Options
-![dispoptions](https://github.com/cmitch819/SBCPiezoGUI/assets/22796402/fd3f8f52-3ad4-4cd8-b131-8a64f567e75e)
+![dispoptions](https://github.com/SBC-Collaboration/SBCPiezoGUI/assets/22796402/734c8152-ddb1-449e-871a-3652e8cd1e1b)
 
 This tab controls displaying data from previous runs. It can only open from .sbc.bin files, but it recognizes files with multiple events and these can be viewed using event number input as well as arrows to go from one event to the next consecutive event. It can display files that have been recorded directly from the UI, as well as files recorded with the SBC-Piezo-Base-Code repository.
 
 ## Graph Panel
-![graphs](https://github.com/cmitch819/SBCPiezoGUI/assets/22796402/80794811-4a8e-4826-ab8b-ec144cf97bad)
+![graphs](https://github.com/SBC-Collaboration/SBCPiezoGUI/assets/22796402/04f36811-bb2b-4553-bbbb-c7658113eb5c)
 
 Each graph corresponds to a digitizer channel. If your signal is not visible on the y-axis, double click on it to zoom to fit the data. You can also click and drag or scroll to adjust position and scale.
 
