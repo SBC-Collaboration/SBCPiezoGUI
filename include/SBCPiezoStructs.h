@@ -13,8 +13,12 @@
 
 namespace SBCPiezoGUI {
 
+    enum ProgramState {
+        Init, Acquiring, FinishAcquire, FileDisplay, Error
+    };
+
+    // controls related to each run (applied to all channels)
     struct RunControls {
-        // at least the negative on sample size can be used for error checking
         int SampleSize = -1;
         int SampleOffset = -1;
         int SampleRes = -1;
@@ -29,6 +33,7 @@ namespace SBCPiezoGUI {
         Formats format = txt;
     };
 
+    // controls related to setting triggers; you can set multiple triggers with different sources and parameters
     struct TriggerControls {
         int TriggerNum = 1;
         std::vector<int> Sources = {1};
@@ -36,16 +41,21 @@ namespace SBCPiezoGUI {
         std::vector<int> Condition = {1};
     };
 
+    // controls related to each channel (all channels are include in this class
+    // ActiveChannels is included in cases future modification involves different numbers of active channels,
+    // but this will require signficant code changes)
     struct ChannelControls {
         int ActiveChannels = 8;
+        double CurrentTimeStamp = 0; // best place I can think of to store this
         int Range[8] = {2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000};
         int DCOffset[8] = {0};
         std::array<float*, 8> Buffers;
     };
 
+    // manager for displaying already-recorded data; makes it easier to display files with multiple segments
     struct FileDisplayManager {
         std::vector<int> segments;
-        std::vector<float> channels[8];
+        std::vector<double> channels[8];
     };
 }
 
