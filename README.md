@@ -29,7 +29,7 @@ These control trigger parameters, including number of triggers and parameters fo
 This tab controls displaying data from previous runs. It can only open from .sbc.bin files, but it recognizes files with multiple events and these can be viewed using event number input as well as arrows to go from one event to the next consecutive event. It can display files that have been recorded directly from the UI, as well as files recorded with the SBC-Piezo-Base-Code repository.
 
 ### Known Issues
-- Currently, external trigger range is set by default to [value], so the level % is with respect to this; I can fix this in a future revision if necessary
+- Currently, external trigger range is set by default to 10000 mV (+/-5 V), so the level percentage is with respect to this; I can fix this in a future revision if necessary
 - If you don't set the right parameters in Acquisition Options and want to stop a run, you have to close the entire UI to do this (it is not multithreaded, and multithreading may not even work on Linux, so this is something that we just have to deal with for now).
 - In file saving, the timestamp of the first event appears to be wrong (it's always much higher than the next event, although the following timestamps seem correct relative to each other). Since timestamps are a minor feature of this program and the UI may not even be used when recording actual runs (since there is a no-UI version that exists already), I haven't dedicated a lot of time to fixing this yet, although I can do that if necessary.
 
