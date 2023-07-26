@@ -9,7 +9,7 @@ The files in include/SBCBinaryFormat were written by Hector Hawley Herrera and c
 There are four tabs on the control panel:
 
 #### Acquisition Options
-![acqoptions](https://github.com/cmitch819/SBCPiezoGUI/assets/22796402/a358e155-17d2-4f86-a1b9-cf15919936d6)
+![acqoptions](https://github.com/SBC-Collaboration/SBCPiezoGUI/assets/22796402/a358e155-17d2-4f86-a1b9-cf15919936d6)
 
 These control parameters that remain constant while the digitizer is acquiring data, including the number of samples per event to collect (both before and after a trigger) and the total number of events. Data saving is also included; you can save in .txt or .sbc.bin format, with an additional option to save whatever signals are currently being displayed on the UI (in case you didn't select Save File before acquiring and now want to save your data). 
 
