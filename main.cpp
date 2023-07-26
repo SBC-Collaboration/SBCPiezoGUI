@@ -1,12 +1,6 @@
-// Dear ImGui: standalone example application for GLFW + OpenGL 3, using programmable pipeline
-// (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
-// Read online: https://github.com/ocornut/imgui/tree/master/docs
-
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-//#include <windows.h>
 #include <stdio.h>
 #include "implot.h"
 #include "ImGuiFileDialog.h"
@@ -63,9 +57,12 @@ int main(int, char**)
     glfwSwapInterval(1); // Enable vsync
 
     CSHANDLE                	hSystem = 0;
-    SBCPiezoGUI::Initialize(&hSystem);
 
     SBCPiezoGUI::WindowManager windowManager = SBCPiezoGUI::WindowManager();
+
+    // if you don't have a digitizer system connected, you can still run code to look at pre-recorded signals; just
+    // comment out the line below.
+    windowManager.SetState(SBCPiezoGUI::Initialize(&hSystem));
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -88,7 +85,7 @@ int main(int, char**)
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window) && windowManager.GetState() != SBCPiezoGUI::Error)
     {
         glfwPollEvents();
 
@@ -98,7 +95,6 @@ int main(int, char**)
         ImGui::NewFrame();
         {
             windowManager.DrawTabBar(hSystem);
-
         }
 
         {
