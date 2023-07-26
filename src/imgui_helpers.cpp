@@ -53,7 +53,7 @@ namespace SBCPiezoGUI {
     }
 
     void WindowManager::DrawAcqTab() {
-        ImGui::Combo("Sample Rate", &currentSampleRate, sampleRates, 3);
+        ImGui::Combo("Sample Rate", &currentSampleRate, sampleRates, 17);
         params.SampleRate = sampleRatesInt[currentSampleRate];
         ImGui::InputInt("Post Trigger Samples", &params.PostTriggerSamples);
         ImGui::InputInt("Pre Trigger Samples", &params.PreTriggerSamples);
