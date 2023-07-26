@@ -5,7 +5,8 @@
 #include "../include/gage_helpers.h"
 
 namespace SBCPiezoGUI {
-    int Initialize(CSHANDLE *pSystem) {
+
+    ProgramState Initialize(CSHANDLE *pSystem) {
         int32 i32Status = CS_SUCCESS;
         int i;
         CSSYSTEMINFO            	CsSysInfo = {0};
@@ -14,16 +15,16 @@ namespace SBCPiezoGUI {
         i32Status = CsInitialize();
         if (0 == i32Status) {
             printf("\nNo CompuScope systems found\n");
-            return (-1);
+            return Error;
         }
         if (CS_FAILED(i32Status)) {
             DisplayErrorString(i32Status);
-            return (-1);
+            return Error;
         }
         i32Status = CsGetSystem(pSystem, 0, 0, 0, 0);
         if (CS_FAILED(i32Status)) {
             DisplayErrorString(i32Status);
-            return (-1);
+            return Error;
         }
 
         // this is effectively error checking for this function to make sure it gets the system correctly; you can remove this later potentially
@@ -35,8 +36,7 @@ namespace SBCPiezoGUI {
         if (!pArrayBoardInfo)
         {
             printf (_T("\nUnable to allocate memory\n"));
-            CsFreeSystem(*pSystem);
-            return (-1);
+            return Error;
         }
         pArrayBoardInfo->u32BoardCount = CsSysInfo.u32BoardCount;
         for (i = 0; i < pArrayBoardInfo->u32BoardCount; i++)
@@ -52,12 +52,10 @@ namespace SBCPiezoGUI {
             printf(_T("\n\tSerial[%d]: %s"), i, pArrayBoardInfo->aBoardInfo[i].strSerialNumber);
         }
         printf(_T("\n"));
-        return 0;
+        return Init;
     }
 
-    void Configure(CSHANDLE hSystem, RunControls& params, ChannelControls chans, TriggerControls& trigs) {
-        // at some point you will have to decide if you want variable modes lol; you can do this by having a list of channel structs
-        // stick with octal mode for now
+    ProgramState Configure(CSHANDLE hSystem, RunControls& params, ChannelControls chans, TriggerControls& trigs) {
 
         int32 i32Status = CS_SUCCESS;
         CSSYSTEMINFO CsSysInfo = {0};
@@ -65,11 +63,11 @@ namespace SBCPiezoGUI {
         CSAPPLICATIONDATA CsAppData = {0};
         uInt32                  	u32Mode;
 
-        // write ini file here
+        // write .INI file
         LPCTSTR szIniFile = ("PiezoGUI.ini");
         WriteINIFile(szIniFile, params, chans, trigs);
-        std::cout << "Post-ini file" << std::endl;
 
+        // use .ini params to configure the Gage driver
         i32Status = CsAs_ConfigureSystem(hSystem, chans.ActiveChannels, trigs.TriggerNum, (LPCTSTR)szIniFile, &u32Mode);
         if (CS_FAILED(i32Status))
         {
@@ -87,8 +85,7 @@ namespace SBCPiezoGUI {
                    system so it's available for another application
                    */
                 DisplayErrorString(i32Status);
-                CsFreeSystem(hSystem);
-                //VirtualFree (pArrayBoardInfo, 0, MEM_RELEASE);
+                return Error;
             }
         }
         /*
@@ -114,8 +111,7 @@ namespace SBCPiezoGUI {
             else
             {
                 DisplayErrorString(i32Status);
-                CsFreeSystem(hSystem);
-                //VirtualFree (pArrayBoardInfo, 0, MEM_RELEASE);
+                return Error;
             }
         }
         else if (CS_USING_DEFAULT_APP_DATA & i32Status)
@@ -136,26 +132,27 @@ namespace SBCPiezoGUI {
         if (CS_FAILED(i32Status))
         {
             DisplayErrorString(i32Status);
-            CsFreeSystem(hSystem);
-            //VirtualFree (pArrayBoardInfo, 0, MEM_RELEASE);
+            return Error;
+
         }
         CsAcqCfg.u32Size = sizeof(CSACQUISITIONCONFIG);
         i32Status = CsGet(hSystem, CS_ACQUISITION, CS_ACQUISITION_CONFIGURATION, &CsAcqCfg);
         if (CS_FAILED(i32Status))
         {
             DisplayErrorString(i32Status);
-            CsFreeSystem(hSystem);
+            return Error;
         }
 
         // read in defaults; we will error check this later
         params.SampleSize = (int)CsAcqCfg.u32SampleSize;
         params.SampleOffset = CsAcqCfg.i32SampleOffset;
         params.SampleRes = CsAcqCfg.i32SampleRes;
+        return Acquiring;
 
     }
 
-    void AcquireChannelData(CSHANDLE hSystem, RunControls params, ChannelControls& chans, int segID, const std::string& fileName) {
-        void *pBuffer = nullptr;
+    ProgramState AcquireChannelData(CSHANDLE hSystem, RunControls params, ChannelControls& chans, int segID, const std::string& fileName) {
+        void *pBuffer;
         float *pVBuffer;
         int i64Padding = 64;
         TRIGGERED_INFO_STRUCT       TriggeredInfo ={0};
@@ -167,119 +164,123 @@ namespace SBCPiezoGUI {
         int64					i64StartOffset = 0;
 
 
-            pBuffer = VirtualAlloc(NULL, (size_t) ((params.PostTriggerSamples + params.PreTriggerSamples + i64Padding) * 8 * params.SampleSize),
-                                   MEM_COMMIT, PAGE_READWRITE);
+        TransferTimeStamp(hSystem, chans); // make sure this works too
 
-            if (NULL == pBuffer) {
-                _tprintf(_T("\nUnable to allocate memory"));
-                CsFreeSystem(hSystem);
-            }
+        // allocate buffers for reading data from driver
+        pBuffer = VirtualAlloc(nullptr, (size_t) ((params.PostTriggerSamples + params.PreTriggerSamples + i64Padding) * 8 * params.SampleSize),
+                               MEM_COMMIT, PAGE_READWRITE);
+
+        if (nullptr == pBuffer) {
+            _tprintf(_T("\nUnable to allocate memory"));
+            return Error;
+        }
 
 
-            pVBuffer = (float *) VirtualAlloc(NULL, (size_t) ((params.PostTriggerSamples + params.PreTriggerSamples) * 8 * sizeof(float)), MEM_COMMIT,
-                                              PAGE_READWRITE);
-            if (NULL == pVBuffer) {
-                _tprintf(_T("\nUnable to allocate memory\n"));
-                CsFreeSystem(hSystem);
+        pVBuffer = (float *) VirtualAlloc(nullptr, (size_t) ((params.PostTriggerSamples + params.PreTriggerSamples) * 8 * sizeof(float)), MEM_COMMIT,
+                                          PAGE_READWRITE);
+        if (nullptr == pVBuffer) {
+            _tprintf(_T("\nUnable to allocate memory\n"));
+            VirtualFree(pBuffer, 0, MEM_RELEASE);
+            return Error;
+        }
+
+        // error checking to make sure the user did not modify driver constants
+        if (params.SampleSize < 0) {
+            _tprintf("Invalid SampleSize parameter; do not change this in code (should be a driver constant");
+            VirtualFree(pBuffer, 0, MEM_RELEASE);
+            VirtualFree(pVBuffer, 0, MEM_RELEASE);
+            return Error;
+        }
+
+        /*
+           Start the data acquisition
+        */
+
+        i32Status = CsDo(hSystem, ACTION_START);
+        if (CS_FAILED(i32Status)) {
+            DisplayErrorString(i32Status);
+            return Error;
+        }
+
+        if (!DataCaptureComplete(hSystem)) {
+            return Error;
+        }
+
+        // get what channel triggered data recording
+        ChannelTriggered = (int16 *) VirtualAlloc(nullptr, (size_t) (sizeof(int16)), MEM_COMMIT, PAGE_READWRITE);
+        ZeroMemory(ChannelTriggered, sizeof(int16));
+
+        TriggeredInfo.u32Size = sizeof(TriggeredInfo);
+        TriggeredInfo.u32StartSegment = 1;                      // the first segment
+        TriggeredInfo.u32NumOfSegments = 1;
+        TriggeredInfo.u32BufferSize = sizeof(int16);
+        TriggeredInfo.pBuffer = ChannelTriggered;
+        i32Status = CsGet(hSystem, 0, CS_TRIGGERED_INFO, &TriggeredInfo);
+        if (CS_FAILED(i32Status)) {
+            if (CS_INVALID_PARAMS_ID != i32Status)
+                DisplayErrorString(i32Status);
+            return Error;
+        }
+
+
+        /*
+           Acquisition is now complete.
+
+
+           Fill in the InData structure for transferring the data
+           */
+        /*
+           Non multiple record captures should have the segment set to 1.
+           InData.u32Mode refers to the transfer mode. Regular transfer is 0
+           */
+        InData.u32Segment = 1;
+        InData.u32Mode = TxMODE_DATA_INTERLEAVED; // i do this because something is wrong with the default transfer mode
+        InData.u16Channel = 1;
+        /*
+        Validate the start address and the length.  This is especially necessary if
+        trigger delay is being used
+        */
+
+        InData.i64StartAddress = -(params.PreTriggerSamples);
+        /*
+            We transfer a little more than we need so we're sure to get what we requested, regardless of any hw alignment issuses
+        */
+        InData.i64Length = (params.PostTriggerSamples + params.PreTriggerSamples + i64Padding) * 8;
+        InData.pDataBuffer = pBuffer;
+
+
+        ZeroMemory(pBuffer, (size_t) ((params.PostTriggerSamples + params.PreTriggerSamples + i64Padding) * 8 *
+                                      params.SampleSize));
+        /*
+           Transfer the captured data
+        */
+        i32Status = CsTransfer(hSystem, &InData, &OutData);
+        if (CS_FAILED(i32Status)) {
+            DisplayErrorString(i32Status);
+            if (nullptr != pBuffer)
                 VirtualFree(pBuffer, 0, MEM_RELEASE);
-            }
+            if (nullptr != pVBuffer)
+                VirtualFree(pVBuffer, 0, MEM_RELEASE);
+            return Error;
+        }
 
-            /*
-               Start the data acquisition
-            */
-            i32Status = CsDo(hSystem, ACTION_START);
-            if (CS_FAILED(i32Status)) {
-                DisplayErrorString(i32Status);
-                CsFreeSystem(hSystem);
-            }
+        /*
+         * Error checking on start offset/data transfer
+         */
 
-            if (!DataCaptureComplete(hSystem)) {
-                CsFreeSystem(hSystem);
-            }
-
-            ChannelTriggered = (int16 *) VirtualAlloc(NULL, (size_t) (sizeof(int16)), MEM_COMMIT, PAGE_READWRITE);
-            ZeroMemory(ChannelTriggered, sizeof(int16));
-
-            TriggeredInfo.u32Size = sizeof(TriggeredInfo);
-            TriggeredInfo.u32StartSegment = 1;                      // the first segment
-            TriggeredInfo.u32NumOfSegments = 1;
-            TriggeredInfo.u32BufferSize = sizeof(int16);
-            TriggeredInfo.pBuffer = ChannelTriggered;
-            i32Status = CsGet(hSystem, 0, CS_TRIGGERED_INFO, &TriggeredInfo);
-            if (CS_FAILED(i32Status)) {
-                if (CS_INVALID_PARAMS_ID != i32Status)
-                    DisplayErrorString(i32Status);
-            }
+        i64StartOffset = InData.i64StartAddress - OutData.i64ActualStart;
+        if (i64StartOffset < 0) {
+            i64StartOffset = 0;
+            InData.i64StartAddress = OutData.i64ActualStart;
+        }
 
 
-            /*
-               Acquisition is now complete.
-
-
-               Fill in the InData structure for transferring the data
-               */
-            /*
-               Non multiple record captures should have the segment set to 1.
-               InData.u32Mode refers to the transfer mode. Regular transfer is 0
-               */
-            InData.u32Segment = 1;
-            InData.u32Mode = TxMODE_DATA_INTERLEAVED; // i do this because something is wrong with the default transfer mode
-            InData.u16Channel = 1;
-            /*
-            Validate the start address and the length.  This is especially necessary if
-            trigger delay is being used
-            */
-
-            InData.i64StartAddress = -(params.PreTriggerSamples);
-            /*
-                We transfer a little more than we need so we're sure to get what we requested, regardless of any hw alignment issuses
-            */
-            InData.i64Length = (params.PostTriggerSamples + params.PreTriggerSamples + i64Padding) * 8;
-            InData.pDataBuffer = pBuffer;
-
-            /*
-                  Variable that will contain either raw data or data in Volts depending on requested format
-                  */
-
-            ZeroMemory(pBuffer, (size_t) ((params.PostTriggerSamples + params.PreTriggerSamples + i64Padding) * 8 *
-                                          params.SampleSize));
-            //InData.u16Channel = (uInt16)i;
-            /*
-               Transfer the captured data
-            */
-            i32Status = CsTransfer(hSystem, &InData, &OutData);
-            if (CS_FAILED(i32Status)) {
-                DisplayErrorString(i32Status);
-                if (NULL != pBuffer)
-                    VirtualFree(pBuffer, 0, MEM_RELEASE);
-                if (NULL != pVBuffer)
-                    VirtualFree(pVBuffer, 0, MEM_RELEASE);
-                CsFreeSystem(hSystem);
-            }
-            /*
-              Note: to optimize the transfer loop, everything from
-              this point on in the loop could be moved out and done
-              after all the channels are transferred.
-            */
-            /*
-               Assign a file name for each channel that we want to save
-               */
-            /*
-               Gather up the information needed for the volt conversion and/or file header
-               */
-            i64StartOffset = InData.i64StartAddress - OutData.i64ActualStart;
-            if (i64StartOffset < 0) {
-                i64StartOffset = 0;
-                InData.i64StartAddress = OutData.i64ActualStart;
-            }
-
-
-            /*
-            Save the smaller of the requested transfer length or the actual transferred length
-            */
-            OutData.i64ActualLength += i64StartOffset;
-            i64SavedLength = (params.PostTriggerSamples + params.PreTriggerSamples) * 8 <= OutData.i64ActualLength ?
-                             (params.PostTriggerSamples + params.PreTriggerSamples) * 8
+        /*
+        Save the smaller of the requested transfer length or the actual transferred length
+        */
+        OutData.i64ActualLength += i64StartOffset;
+        i64SavedLength = (params.PostTriggerSamples + params.PreTriggerSamples) * 8 <= OutData.i64ActualLength ?
+                         (params.PostTriggerSamples + params.PreTriggerSamples) * 8
                                                                                                                    : OutData.i64ActualLength;
 
 /*
@@ -287,41 +288,25 @@ namespace SBCPiezoGUI {
 				data to voltages. We pass the buffer plus the actual start, which will be converted
 				from reqested start to actual length in the volts buffer.
 */
-            // REMEMBER TO FIX THIS AT SOME POINT &&&
-            i32Status = CsAs_ConvertToVolts(i64SavedLength, chans.Range[0], params.SampleSize,
-                                            params.SampleOffset, params.SampleRes,
-                                            chans.DCOffset[0],
-                                            (void *) ((unsigned char *) pBuffer + (i64StartOffset * params.SampleSize)),
-                                            pVBuffer);
-            if (CS_FAILED(i32Status)) {
-                DisplayErrorString(i32Status);
-            }
+        // Check if this works lol
+        i32Status = ConvertToVoltsInterleaved((int)i64SavedLength, params, chans, pBuffer);
 
-            // there is probably a better way to do this but idc
-            int counter = 0;
-            for (int i = 0; i < i64SavedLength; i += 8) {
-                for (int j = 0; j < 8; j++) {
-                    if (i == 0)
-                        // no idea if this will work but i guess we'll see...
-                        chans.Buffers[j] = new float[params.PostTriggerSamples + params.PreTriggerSamples];
-                    chans.Buffers[j][counter] = pVBuffer[i + j];
-                }
-                counter++;
-            }
+        if (CS_FAILED(i32Status)) {
+            DisplayErrorString(i32Status);
+            return Error;
+        }
 
+        if (params.SaveFile) {
+            SaveFile(fileName, params.format, chans, segID, params.PreTriggerSamples + params.PostTriggerSamples, ChannelTriggered[0]);
+        }
 
-            // DON'T CALL THIS HERE; file include struct is fucking with things so just save files in the display loops
-            if (params.SaveFile) {
-                SaveFile(fileName, params.format, chans, segID, params.PreTriggerSamples + params.PostTriggerSamples, ChannelTriggered[0]);
-            }
-
-
-            VirtualFree(pBuffer, 0, MEM_RELEASE);
-            VirtualFree(pVBuffer, 0, MEM_RELEASE);
-
+        VirtualFree(pBuffer, 0, MEM_RELEASE);
+        VirtualFree(pVBuffer, 0, MEM_RELEASE);
+        return Acquiring;
 
     }
 
+    // Write .ini files in the proper format based on user input
     void WriteINIFile(LPCTSTR fileName, RunControls params, ChannelControls chans, TriggerControls trigs) {
         std::ofstream iniFile;
         iniFile.open(fileName);
@@ -351,6 +336,141 @@ namespace SBCPiezoGUI {
         iniFile << "[Application]\nStartPosition=" << -(params.PreTriggerSamples) << "\nTransferLength=" << params.PostTriggerSamples + params.PreTriggerSamples << std::endl;
         iniFile << "SegmentStart=1\nSegmentCount=1\nSaveFileFormat=TYPE_FLOAT" << std::endl;
         iniFile.close();
+    }
+
+    int32 ConvertToVoltsInterleaved(int64 depth, RunControls params, ChannelControls& chans, void* pBuffer) {
+/*      Converts the raw data in the buffer pBuffer to voltages and puts them into pVBuffer.
+        The conversion is done using the formula:
+        voltage = ((sample_offset - raw_value) / sample_resolution) * gain
+        where gain is calculated in volts by gain_in_millivolts / CS_GAIN_2_V (2000).
+        The DC Offset is added to each element of the voltage buffer
+*/
+
+        double                                  dScaleFactor[8];
+        int64                                   i;
+        int32                                   i32Status = CS_SUCCESS;
+
+        for (int j = 0; j < 8; j++) {
+            dScaleFactor[j] = (double)(chans.Range[j]) / (double)(CS_GAIN_2_V);
+            chans.Buffers[j] = new float[params.PostTriggerSamples + params.PreTriggerSamples];
+
+        }
+        int counter = 0;
+        switch (params.SampleSize)
+        {
+            double dOffset;
+            double dValue;
+            uInt8 *p8ShortBuffer;
+            int16 *p16ShortBuffer;
+            int32 *p32ShortBuffer;
+
+            case 1:
+                p8ShortBuffer = (uInt8 *)pBuffer;
+                for (i = 0; i < depth; i+=8)
+                {
+                    for (int j = 0; j < 8; j++) {
+                        dOffset = params.SampleOffset - (double)(p8ShortBuffer[i+j]);
+                        dValue = dOffset / (double)params.SampleRes;
+                        dValue *= dScaleFactor[j];
+                        dValue += (double)(chans.DCOffset[j]) / 1000.0;
+                        chans.Buffers[j][counter] = (float)dValue;
+                    }
+                    counter++;
+                }
+                break;
+            case 2:
+                p16ShortBuffer = (int16 *)pBuffer;
+                for (i = 0; i < depth; i+=8)
+                {
+                    for (int j = 0; j < 8; j++) {
+                        dOffset = params.SampleOffset - (double)(p16ShortBuffer[i+j]);
+                        dValue = dOffset / (double)params.SampleRes;
+                        dValue *= dScaleFactor[j];
+                        dValue += (double)(chans.DCOffset[j]) / 1000.0;
+                        chans.Buffers[j][counter] = (float)dValue;
+                    }
+                    counter++;
+                }
+                break;
+
+            case 4:
+                p32ShortBuffer = (int32 *)pBuffer;
+                for (i = 0; i < depth; i+=8)
+                {
+                    for (int j = 0; j < 8; j++) {
+                        dOffset = params.SampleOffset - (double)(p32ShortBuffer[i+j]);
+                        dValue = dOffset / (double)params.SampleRes;
+                        dValue *= dScaleFactor[j];
+                        dValue += (double)(chans.DCOffset[j]) / 1000.0;
+                        chans.Buffers[j][counter] = (float)dValue;
+                    }
+                    counter++;
+                }
+                break;
+
+            default:
+                i32Status = CS_MISC_ERROR;
+                break;
+        }
+
+        return i32Status;
+    }
+
+    void TransferTimeStamp(CSHANDLE hSystem, ChannelControls& chans)
+    {
+        IN_PARAMS_TRANSFERDATA              InTSData = {0};
+        OUT_PARAMS_TRANSFERDATA             OutTSData = {0};
+        int32                                               i32Status = CS_SUCCESS;
+        int64                                               i64TickFrequency = 0;
+
+        InTSData.u16Channel = 1;
+        InTSData.u32Mode = TxMODE_TIMESTAMP;
+        InTSData.i64StartAddress = 1;
+        InTSData.i64Length = 1;
+        InTSData.u32Segment = 1;
+
+        int64* pTimeStamp;
+        pTimeStamp = (int64 *)VirtualAlloc( nullptr, (size_t)(sizeof(int64)), MEM_COMMIT, PAGE_READWRITE);
+        if (nullptr == pTimeStamp)
+        {
+            _tprintf (_T("\nUnable to allocate memory\n"));
+        }
+        ZeroMemory(pTimeStamp,(size_t)(sizeof(int64)));
+        InTSData.pDataBuffer = pTimeStamp;
+
+        i32Status = CsTransfer(hSystem, &InTSData, &OutTSData);
+        if (CS_FAILED(i32Status))
+        {
+/*
+                if the error is INVALID_TRANSFER_MODE it just means that this systems
+                doesn't support time stamp. We can continue on with the program.
+*/
+            if (CS_INVALID_TRANSFER_MODE == i32Status)
+                _tprintf (_T("\nTime stamp is not supported in this system.\n"));
+            else
+                DisplayErrorString(i32Status);
+
+            VirtualFree(pTimeStamp, 0, MEM_RELEASE);
+            pTimeStamp = nullptr;
+        }
+
+        i32Status = CsGet(hSystem, CS_PARAMS, CS_TIMESTAMP_TICKFREQUENCY, &i64TickFrequency);
+        if (CS_FAILED(i32Status))
+        {
+            DisplayErrorString(i32Status);
+        }
+
+
+        if (CS_SUCCEEDED(i64TickFrequency))
+        {
+            /*
+                The number of ticks that have ocurred / tick count(the number of ticks / second)
+                = the number of seconds elapsed. Multiple by 1000000 to get the number of
+                mircoseconds
+            */
+            chans.CurrentTimeStamp = (double)( (*pTimeStamp)) / (double)(i64TickFrequency);
+        }
+
     }
 
 }
