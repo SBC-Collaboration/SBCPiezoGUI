@@ -13,17 +13,18 @@ namespace SBCPiezoGUI {
             if (ImGui::BeginTabItem("Acquisition Options"))
             {
                 DrawAcqTab();
-                // maybe move this somewhere else? like have a functionality thing? if you're already separating by displays...idk
                 if (state == Acquiring) {
                     if (currentSegment == 0) {
-                        Configure(hSystem, params, channels, triggers);
+                        state = Configure(hSystem, params, channels, triggers);
                         WriteFileName(params.format, fileName);
                     }
-                    AcquireChannelData(hSystem, params, channels, currentSegment, fileName);
-                    currentSegment++;
-                    if (currentSegment >= params.Runs) {
-                        state = FinishAcquire;
-                        currentSegment = 0;
+                    if (state != Error) {
+                        state = AcquireChannelData(hSystem, params, channels, currentSegment, fileName);
+                        currentSegment++;
+                        if (currentSegment >= params.Runs && state != Error) {
+                            state = FinishAcquire;
+                            currentSegment = 0;
+                        }
                     }
                 }
                 ImGui::EndTabItem();
@@ -52,7 +53,8 @@ namespace SBCPiezoGUI {
     }
 
     void WindowManager::DrawAcqTab() {
-        ImGui::InputInt("Sample Rate", &params.SampleRate);
+        ImGui::Combo("Sample Rate", &currentSampleRate, sampleRates, 3);
+        params.SampleRate = sampleRatesInt[currentSampleRate];
         ImGui::InputInt("Post Trigger Samples", &params.PostTriggerSamples);
         ImGui::InputInt("Pre Trigger Samples", &params.PreTriggerSamples);
         ImGui::InputInt("Trigger Timeout", &params.TriggerTimeout);
@@ -79,37 +81,54 @@ namespace SBCPiezoGUI {
 
     void WindowManager::DrawChannelTab() {
         ImGui::Combo("Channels", &currentChannel, channelNumbers, 8);
-        ImGui::InputInt("Input Range", &channels.Range[currentChannel]); // this doesn't work? do some print tests/check ini file to confirm cause it may be a vis issue
-        ImGui::InputInt("DC Offset", &channels.DCOffset[currentChannel]);
+        if (channels.Range[currentChannel] == 2000)
+            currentInputRange = 0;
+        else
+            currentInputRange = 1;
+        ImGui::Combo("Input Range [mV]", &currentInputRange, inputRanges, 2);
+        channels.Range[currentChannel] = inputRangesInt[currentInputRange];
+        ImGui::InputInt("DC Offset [%]", &channels.DCOffset[currentChannel]);
     }
 
+
     void WindowManager::DrawTriggerTab() {
-        ImGui::InputInt("Number of Trigger Sources", &triggers.TriggerNum);
-        for (int i = 0; i < triggers.TriggerNum; i++) {
+        bool edited = false;
+        if (ImGui::InputInt("Number of Trigger Sources", &triggers.TriggerNum)) {
+            edited = true;
+        }
+        if (edited) {
             triggers.Sources.push_back(1);
             triggers.Levels.push_back(10);
             triggers.Condition.push_back(1);
-            ImGui::Combo("Source", &triggers.Sources[i], triggerSources, 9);
-            ImGui::InputInt("Level", &triggers.Levels[i]);
-            ImGui::Combo("Condition", &triggers.Condition[i], triggerConditions, 2);
+        }
+
+        for (int i = 0; i < triggers.TriggerNum; i++) {
+#ifdef WIN32
+            ImGui::Combo(std::format("Source {}", i+1).data(), &triggers.Sources[i], triggerSources, 9);
+            ImGui::InputInt(std::format("Level {} [%]", i+1).data(), &triggers.Levels[i]);
+            ImGui::Combo(std::format("Condition {}", i+1).data(), &triggers.Condition[i], triggerConditions, 2);
+#else
+            ImGui::Combo(fmt::format("Source {}", i+1).data(), &triggers.Sources[i], triggerSources, 9);
+            ImGui::InputInt(fmt::format("Level {} [%]", i+1).data(), &triggers.Levels[i]);
+            ImGui::Combo(fmt::format("Condition {}", i+1).data(), &triggers.Condition[i], triggerConditions, 2);
+#endif
         }
     }
 
     void WindowManager::DrawDisplayTab() {
-        // window size needs to be adjusted but otherwise this works
-        if (ImGui::Button("Open File"))
+        if (ImGui::Button("Open File")) {
+            ImGui::SetNextWindowSize(ImVec2(500, 350), ImGuiCond_Appearing);
             ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".bin", ".");
-
+        }
         // display
         if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
         {
             // action if OK
             if (ImGuiFileDialog::Instance()->IsOk())
             {
-                channels = ChannelControls(params.PostTriggerSamples + params.PreTriggerSamples);
                 std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
                 std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-                InitFileDisplay(filePathName, displayManager);
+                InitFileDisplay(filePathName, displayManager, params);
                 state = FileDisplay;
                 // action
             }
@@ -125,7 +144,7 @@ namespace SBCPiezoGUI {
                 currentSegment--;
             }
             ImGui::InputInt("Current Segment", &currentSegment);
-            DisplayFile(displayManager, channels, currentSegment, params.PreTriggerSamples + params.PostTriggerSamples);
+            DisplayFile(displayManager, channels, currentSegment, params.PostTriggerSamples+params.PreTriggerSamples);
         }
     }
 
@@ -143,7 +162,7 @@ namespace SBCPiezoGUI {
                 if (ImPlot::BeginPlot(PlotTitle.data())) {
                     ImPlot::SetupAxes("Sample Number","Signal [V]");
                     ImPlot::SetupAxesLimits(0, params.PreTriggerSamples + params.PostTriggerSamples, -(channels.Range[i]/2. /1000), channels.Range[i]/2. /1000);
-                    if (state == Init) {
+                    if (state == Init || state == Error) {
                         ImPlot::PlotDummy(PlotTitle.data()); // come back to this for channel formatting
                     }
                     else {
