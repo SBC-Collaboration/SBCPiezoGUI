@@ -9,14 +9,14 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "Writers.hpp"
-#include "Reader.hpp"
+#include "SBCBinaryFormat/Writers.hpp"
+#include "SBCBinaryFormat/Reader.hpp"
 
 namespace SBCPiezoGUI {
 
     void SaveFile(const std::string &fileName, RunControls::Formats format, ChannelControls &chans, int segID, int segSize,
              int triggerSource);
-    void InitFileDisplay(const std::string& fileName, FileDisplayManager& fileDisplay);
+    void InitFileDisplay(const std::string& fileName, FileDisplayManager& fileDisplay, RunControls& params);
     void DisplayFile(FileDisplayManager fileDisplay, ChannelControls& chans, int& segID, int segSize);
 }
 
