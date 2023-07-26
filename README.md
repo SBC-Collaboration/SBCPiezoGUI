@@ -25,6 +25,7 @@ These control trigger parameters, including number of triggers and parameters fo
 
 #### Display Options
 ![dispoptions](https://github.com/cmitch819/SBCPiezoGUI/assets/22796402/fd3f8f52-3ad4-4cd8-b131-8a64f567e75e)
+
 This tab controls displaying data from previous runs. It can only open from .sbc.bin files, but it recognizes files with multiple events and these can be viewed using event number input as well as arrows to go from one event to the next consecutive event. It can display files that have been recorded directly from the UI, as well as files recorded with the SBC-Piezo-Base-Code repository.
 
 ### Known Issues
