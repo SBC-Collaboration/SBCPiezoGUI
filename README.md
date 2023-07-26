@@ -1,6 +1,6 @@
 # SBCPiezoGUI
 
-A user interface for acoustic digitzer signals for the SBC collaboration. 
+A user interface for acoustic digitzer signals for the SBC collaboration. To use, clone this repository into the gati-linux-driver folder of your Gage software if using Linux (should work from anywhere on Windows).
 
 ## Acknowledgements
 The files in include/SBCBinaryFormat were written by Hector Hawley Herrera and can be found [here](https://github.com/SBC-Collaboration/SiPMCharacterization). Other dependencies include [imgui](https://github.com/ocornut/imgui), [implot](https://github.com/epezent/implot), [ImGuiFileDialog](https://github.com/aiekick/ImGuiFileDialog/tree/master), [glfw](https://github.com/glfw/glfw) and [spdlog](https://github.com/gabime/spdlog); these do not need to be separately installed.
