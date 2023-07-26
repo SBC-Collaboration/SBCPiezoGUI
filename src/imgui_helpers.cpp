@@ -7,7 +7,7 @@
 namespace SBCPiezoGUI {
 
     void WindowManager::DrawTabBar(CSHANDLE hSystem) {
-        ImGui::SetNextWindowSize(ImVec2(415,350), ImGuiCond_Appearing);
+        ImGui::SetNextWindowSize(ImVec2(500,300), ImGuiCond_Appearing);
         ImGui::Begin("Items");
         if (ImGui::BeginTabBar("Options", ImGuiTabBarFlags_None)) {
             if (ImGui::BeginTabItem("Acquisition Options"))
