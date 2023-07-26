@@ -26,22 +26,23 @@
 
 
 namespace SBCPiezoGUI {
-    enum ProgramState {
-        Init, Acquiring, FinishAcquire, FileDisplay
-    }; // these can be maybe named more descriptively idk
+
     class WindowManager {
         ProgramState state;
         RunControls params;
         ChannelControls channels;
         TriggerControls triggers;
-        FileDisplayManager displayManager; // we'll see if this needs to be a class variable
+        FileDisplayManager displayManager;
 
         // Input option arrays
         // check what the allowed options on the driver are
-        const char* sampleRates[3] = {"100000000", "10000000", "1000000"};
+        const char* sampleRates[17] = {"100 MS/s", "50 MS/s", "25 MS/s", "12.5 MS/s", "10 MS/s", "5 MS/s", "2 MS/s", "1 MS/s", "500 kS/s", "200 kS/s", "100 kS/s", "50 kS/s", "20 kS/s", "10 kS/s", "5 kS/s", "2 kS/s", "1 kS/s"};
+        int sampleRatesInt[17] = {100000000, 50000000, 25000000, 12500000, 10000000, 5000000, 2000000, 1000000, 500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000, 1000};
         // unordered_map here or in the .ini file function?
-        const char* channelNumbers[8] = {"Channel 1", "Channel 2", "Channel 3", "Channel 4", "Channel 5", "Channel 6", "Channel 7", "Channel 8"};
+        const char* channelNumbers[8] = {"Channel 1", "Channel 2"
+                                         , "Channel 3", "Channel 4", "Channel 5", "Channel 6", "Channel 7", "Channel 8"};
         const char* inputRanges[2] = {"2000", "10000"};
+        int inputRangesInt[2] = {2000, 10000}; // this is so stupid but there's no other way for me to do this lol
         const char* triggerConditions[2] = {"Falling", "Rising"};
         const char* formatOptions[2] = {".txt", ".sbc.bin"};
         const char* triggerSources[9] = {"External", "Channel 1", "Channel 2", "Channel 3", "Channel 4", "Channel 5", "Channel 6", "Channel 7", "Channel 8"};
@@ -58,7 +59,7 @@ namespace SBCPiezoGUI {
     public:
         WindowManager() {
             state = Init;
-            params = {}; // make sure this works
+            params = {};
             channels = {};
             triggers = {};
 
@@ -74,12 +75,11 @@ namespace SBCPiezoGUI {
         void DrawChannelTab();
         void DrawTriggerTab();
         void DrawDisplayTab();
-        void DrawChannels(); // just move plotchannels here
-        ProgramState GetState() { return state; }
-        // writefilename? we'll see
-    };
+        void DrawChannels();
 
-    // change windows to classes; do config/draw methods
+        ProgramState GetState() { return state; }
+        void SetState(ProgramState newState) { state = newState; }
+    };
 
     bool BackEndInitialize();
 
