@@ -28,17 +28,15 @@ These control trigger parameters, including number of triggers and parameters fo
 
 This tab controls displaying data from previous runs. It can only open from .sbc.bin files, but it recognizes files with multiple events and these can be viewed using event number input as well as arrows to go from one event to the next consecutive event. It can display files that have been recorded directly from the UI, as well as files recorded with the SBC-Piezo-Base-Code repository.
 
-### Known Issues
-- Currently, external trigger range is set by default to 10000 mV (+/-5 V), so the level percentage is with respect to this; I can fix this in a future revision if necessary
-- If you don't set the right parameters in Acquisition Options and want to stop a run, you have to close the entire UI to do this (it is not multithreaded, and multithreading may not even work on Linux, so this is something that we just have to deal with for now).
-- In file saving, the timestamp of the first event appears to be wrong (it's always much higher than the next event, although the following timestamps seem correct relative to each other). Since timestamps are a minor feature of this program and the UI may not even be used when recording actual runs (since there is a no-UI version that exists already), I haven't dedicated a lot of time to fixing this yet, although I can do that if necessary.
-
 ## Graph Panel
 ![graphs](https://github.com/cmitch819/SBCPiezoGUI/assets/22796402/80794811-4a8e-4826-ab8b-ec144cf97bad)
 
 Each graph corresponds to a digitizer channel. If your signal is not visible on the y-axis, double click on it to zoom to fit the data. You can also click and drag or scroll to adjust position and scale.
 
-### Known Issues
+## Issues
 
-- If your data is too long (around 12-15k samples or more), you won't be able to view all data at the same time on the x-axis (you shouldn't double click to rescale or the program will throw an error as it won't have enough space to display all the data). You can still scroll/click and drag to view later samples, though, and all your desired data will still be collected and saved. I'm considering adding functionality to hide certain graphs from view or changing layout to allow for longer graphs.
+- Currently, external trigger range is set by default to 10000 mV (+/-5 V) and is not modifiable, so the level percentage is with respect to this; I can fix this in a future revision if necessary
+- If you don't set the right parameters in Acquisition Options and want to stop a run, you have to close the entire UI to do this (it is not multithreaded, and multithreading may not even work on Linux, so this is something that we just have to deal with for now).
+- In file saving, the timestamp of the first event appears to be wrong (it's always much higher than the next event, although the following timestamps seem correct relative to each other). Since timestamps are a minor feature of this program and the UI may not even be used when recording actual runs (since there is a no-UI version that exists already), I haven't dedicated a lot of time to fixing this yet, although I can do that if necessary.
+- If your data is too long (around 12-15k samples or more), you won't be able to view all data at the same time on the graph x-axes (you shouldn't double click to rescale or the program will throw an error as it won't have enough space to display all the data). You can still scroll/click and drag to view later samples, though, and all your desired data will still be collected and saved. I'm considering adding functionality to hide certain graphs from view or changing layout to allow for longer graphs.
 - Not really an issue, but I could probably do error handling a bit better for SBCBinaryFormat and ImGui errors (Gage errors should be handled ok)
