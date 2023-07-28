@@ -3,7 +3,7 @@
 A user interface for acoustic digitzer signals for the SBC collaboration. To use, clone this repository into the gati-linux-driver folder of your Gage software if using Linux and run "cmake .", followed by "make" (on Windows, you should be able to download this repository anywhere and it should work as long as you also have the Gage software downloaded). Also make sure you have C++ 20 installed.
 
 ## Acknowledgements
-The files in include/SBCBinaryFormat were written by Hector Hawley Herrera and can be found [here](https://github.com/SBC-Collaboration/SiPMCharacterization). Other dependencies include [imgui](https://github.com/ocornut/imgui), [implot](https://github.com/epezent/implot), [ImGuiFileDialog](https://github.com/aiekick/ImGuiFileDialog/tree/master), [glfw](https://github.com/glfw/glfw) and [spdlog](https://github.com/gabime/spdlog); these do not need to be separately installed.
+The files in include/SBCBinaryFormat in this repository were written by Hector Hawley Herrera and can be found [here](https://github.com/SBC-Collaboration/SiPMCharacterization). Other dependencies include [imgui](https://github.com/ocornut/imgui), [implot](https://github.com/epezent/implot), [ImGuiFileDialog](https://github.com/aiekick/ImGuiFileDialog/tree/master), [glfw](https://github.com/glfw/glfw) and [spdlog](https://github.com/gabime/spdlog). None of these need to be downloaded separately; just wanted to acknowledge work that's been done by other people.
 
 ## Control Panel
 There are four tabs on the control panel:
