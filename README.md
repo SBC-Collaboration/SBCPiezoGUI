@@ -35,7 +35,7 @@ Each graph corresponds to a digitizer channel. If your signal is not visible on 
 
 ## Issues
 
-- When installing dependencies using CPM, the way implot is set up produces an error; you can fix this by adding the following lines to _deps/implot-src/implot.h immediately after #pragma once and BEFORE #include "imgui.h":
+- When installing dependencies using CPM, the way implot is set up produces an error; you can fix this by running "cmake .", then adding the following lines to _deps/implot-src/implot.h immediately after #pragma once and BEFORE #include "imgui.h":
     - #ifndef IMGUI_DEFINE_MATH_OPERATORS
     - #define IMGUI_DEFINE_MATH_OPERATORS
     - #endif
